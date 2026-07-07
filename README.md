@@ -10,28 +10,48 @@ ground-truth labels — the model itself only ever sees the review text.
 
 ## Results
 
-- **67.3% accuracy** on a held-out test set (3,000 reviews, never seen during training)
-- Trained on **12,000 labeled reviews** (15,000 total sampled, 80/20 train/test split)
-- Class-level performance (precision / recall / F1):
+Two numbers are reported, from two separately trained models (same architecture, different
+training data) — they aren't directly comparable, but both are standard things to report for a
+3-class sentiment problem:
 
-  | Class | Precision | Recall | F1 |
-  |---|---|---|---|
-  | Negative | 0.701 | 0.723 | 0.712 |
-  | Neutral | 0.578 | 0.546 | 0.562 |
-  | Positive | 0.731 | 0.749 | 0.740 |
+| Setup | Accuracy | Test set size |
+|---|---|---|
+| **3-class** (positive / neutral / negative) | **67.3%** | 3,000 reviews |
+| **Binary** (positive / negative, neutral excluded) | **89.5%** | 2,000 reviews |
 
-  Neutral is consistently the hardest class — 3-star reviews are inherently ambiguous/mixed in
-  sentiment, which is a well-known effect in 3-class sentiment analysis, not a modeling bug.
-  For reference, random guessing across 3 balanced classes would score ~33%.
+**3-class**, trained on 12,000 reviews (15,000 sampled, 80/20 split). Class-level performance:
 
-See `confusion_matrix.png` for the full confusion matrix, or run the notebook to regenerate it.
+| Class | Precision | Recall | F1 |
+|---|---|---|---|
+| Negative | 0.701 | 0.723 | 0.712 |
+| Neutral | 0.578 | 0.546 | 0.562 |
+| Positive | 0.731 | 0.749 | 0.740 |
+
+Neutral is consistently the hardest class — 3-star reviews are inherently ambiguous/mixed in
+sentiment, which is a well-known effect in 3-class sentiment analysis, not a modeling bug.
+For reference, random guessing across 3 balanced classes would score ~33%.
+
+**Binary**, trained on 8,000 reviews (10,000 sampled — the positive/negative subset of the same
+data pool, neutral excluded entirely from both training and evaluation, 80/20 split):
+
+| Class | Precision | Recall | F1 |
+|---|---|---|---|
+| Negative | 0.900 | 0.888 | 0.894 |
+| Positive | 0.889 | 0.901 | 0.895 |
+
+Removing the ambiguous neutral class recovers most of the accuracy lost to 3-way confusion —
+consistent with how much of the 3-class model's error mass involves the neutral boundary.
+
+See `confusion_matrix.png` (3-class) and `confusion_matrix_binary.png` (binary) for the full
+confusion matrices, or run the notebook to regenerate them.
 
 ## Approach
 
 **Data:** [Yelp Review Full](https://huggingface.co/datasets/Yelp/yelp_review_full), a public
 dataset of real business reviews with 1–5 star ratings. Star ratings are bucketed into 3 classes:
 1–2★ → negative, 3★ → neutral, 4–5★ → positive. A stratified sample of 5,000 reviews per class
-(15,000 total) is used for speed and clean class balance.
+(15,000 total) is used for speed and clean class balance. The binary evaluation reuses this same
+sampled pool, simply dropping the neutral rows and re-splitting/re-training on what's left.
 
 **Preprocessing** (via `TfidfVectorizer`):
 - Lowercasing
